@@ -1,0 +1,169 @@
+Sub TestSERCH()
+
+    Dim objIE As InternetExplorer
+    Dim objShell  As Object, objWin As Object
+
+    'Shellオブジェクトを作成する
+    Set objShell = CreateObject("Shell.Application")
+      
+  
+    For Each objWin In objShell.Windows
+
+        If objWin.Name = "Internet Explorer" Then
+
+            'InternetExplorerオブジェクトをセット
+            Set objIE = objWin
+
+            Exit For
+
+        End If
+
+    Next
+
+    '本サイトをIE(InternetExplorer)で表示する
+    'Call ieNavi(objIE, "https://kiyocode.com")
+    
+    
+    
+    Dim j As Integer
+    Dim k As Integer
+    k = 1
+    For j = 1 To 84    'ここに書き換え
+    Debug.Print "j:" & j
+    objIE.navigate "https://www.iphiroba.jp/"
+    Call wait(objIE)
+    
+    'HTMLドキュメントの箱を準備
+    Dim htmlDoc As HTMLDocument
+    'objIEで開いているページのHTMLドキュメントを、htmlDocにセット
+    Set htmlDoc = objIE.document
+    htmlDoc.getElementsByName("ip")(0).Value = Worksheets(2).Range("E" & j) '←""の中を書き換え、E列を読み込む
+    Debug.Print htmlDoc.getElementsByName("ip")(0).Value
+
+    'フォームの内容を送信
+    htmlDoc.getElementsByClassName("btn btn-flat")(1).Click
+
+    Call wait(objIE)
+    Do While objIE.Busy = True Or objIE.readyState < READYSTATE_COMPLETE '読み込み待ち
+
+    DoEvents
+
+Loop
+Application.wait Time:=Now + TimeValue("00:00:10")
+    Dim colTR, colTH, colTD, colImg, error As IHTMLElementCollection 'IHTMLエレメントコレクションを準備
+    Set colTR = htmlDoc.getElementsByTagName("tr") 'HTMLドキュメント内のtr要素をコレクションとしてGet
+    'Set error = htmlDoc.getElementsByClassName("error")
+    'Debug.Print error(0).innerText
+
+
+
+
+
+    Dim el As IHTMLElement
+    Dim i As Integer
+    i = 1
+    Debug.Print k
+    Dim flg As Integer
+    flg = 0
+   For Each el In colTR
+   Dim Var(1 To 8) As String
+
+
+
+'    Dim IP As String
+'    Dim Host As String
+'    Dim Country As String
+'    Dim Pre As String
+'    Dim City As String
+
+
+     If i = 9 Then
+            Exit For
+    End If
+
+   Set colTH = el.getElementsByTagName("th")
+   If i = 1 Then
+        'flg = colTH(0).innerText
+        'Debug.Print "text:"; colTH(0).innerText
+        flg = 1
+   End If
+    If i <> 3 And i <> 7 Then
+        Set colTD = el.getElementsByTagName("td")
+        Var(i) = colTD(0).innerText
+    End If
+'    Set colImg = el.getElementsByTagName("img")
+    'Debug.Print colTH(0).innerText & "|" & colTD(0).innerText
+
+
+
+
+'    Range("A" & i) = colTH(0).innerText
+'    If i <> 3 And i <> 7 Then
+'        Range("B" & i) = colTD(0).innerText
+'    End If
+
+'
+i = i + 1
+Next el
+Debug.Print "flg:"; flg
+If flg = 1 And Var(1) <> "対応するIPアドレスがありません。" Then
+If Var(8) <> "該当なし " Or Var(8) = "" Then
+Dim ac_num As String
+        Range("C" & k) = Worksheets(2).Range("F" & j)
+        Range("D" & k) = htmlDoc.getElementsByName("ip")(0).Value
+        Range("E" & k) = Var(2)
+        Range("F" & k) = Var(1)
+        Range("G" & k) = Var(8)
+        Range("K" & k) = Var(4)
+        Range("L" & k) = Var(5)
+        Range("M" & k) = Var(6)
+        k = k + 1
+    End If
+    End If
+Next j
+Call DeleteString(Range("C1:C" & j), "[ア-ン]", "", True)
+End Sub
+'****************************************
+'**********IE表示待機メソッド************
+'****************************************
+Public Function wait(objIE As InternetExplorer)
+    Do While objIE.Busy = True Or objIE.readyState < READYSTATE_COMPLETE
+        DoEvents
+    Loop
+End Function
+
+
+'// 引数1：セル範囲
+'// 引数2：削除対象文字列
+'// 引数3：置換後文字列
+'// 引数4：正規表現利用フラグ（True：利用する、False（既定）：利用しない）
+Sub DeleteString(r As Range, delString, replaceString, Optional bRegExpFlg = False)
+    Dim reg     As New RegExp       '// 正規表現クラスオブジェクト
+    Dim rCell   As Range            '// 指定セルオブジェクト
+            
+    '// 削除対象文字列が未設定の場合は処理しない
+    If (delString = "") Then
+        Exit Sub
+    End If
+    
+    '// 正規表現での削除時
+    If (bRegExpFlg = True) Then
+        '// 検索条件＝削除対象文字列パターン
+        reg.Pattern = delString
+        '// 文字列の最後まで検索する
+        reg.Global = True
+    End If
+    
+    '// 指定セル範囲を１セルずつループ処理
+    For Each rCell In r
+        '// 正規表現での削除時
+        If (bRegExpFlg = True) Then
+            '// セルの文字列から削除対象文字列パターンを置換後文字列に置換
+            rCell.Value = reg.Replace(rCell.Value, replaceString)
+        Else
+            '// セルの文字列から削除対象文字列を置換後文字列に置換
+            rCell.Value = Replace(rCell.Value, delString, replaceString)
+        End If
+    Next
+End Sub
+
